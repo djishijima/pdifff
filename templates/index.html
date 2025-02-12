@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PDF差分分析ツール</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+    <script>pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';</script>
+</head>
+<body class="bg-gray-100 min-h-screen">
+    <div class="container mx-auto px-4 py-8">
+        <h1 class="text-3xl font-bold text-center mb-8 text-gray-800">PDF差分分析ツール</h1>
+        
+        <!-- メインボタン -->
+        <div class="text-center mb-8">
+            <button id="startBtn" class="bg-blue-500 text-white px-8 py-3 rounded-lg font-semibold hover:bg-blue-600 transition-colors">
+                PDFを比較する
+            </button>
+        </div>
+    </div>
+
+    <!-- PDF比較モーダル -->
+    <div id="compareModal" class="fixed inset-0 bg-black bg-opacity-50 hidden z-50 overflow-y-auto">
+        <div class="flex items-center justify-center min-h-screen p-4">
+            <div class="bg-white rounded-lg shadow-xl max-w-7xl w-full relative">
+                <div class="p-6">
+                    <div class="flex justify-between items-center mb-6">
+                        <h2 class="text-2xl font-semibold">PDFの比較</h2>
+                        <button id="compareBtn" class="bg-blue-500 text-white px-6 py-2 rounded-lg font-semibold hover:bg-blue-600 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed" disabled>
+                            分析開始
+                        </button>
+                    </div>
+
+                    <div class="grid md:grid-cols-2 gap-6">
+                        <!-- 左側: 1つ目のPDF -->
+                        <div>
+                            <h3 class="text-lg font-semibold mb-2">元のPDF</h3>
+                            <div class="relative">
+                                <!-- アップロードエリア -->
+                                <div class="upload-area border-2 border-dashed border-gray-300 rounded-lg p-8 text-center cursor-pointer hover:border-blue-500 transition-colors">
+                                    <input type="file" id="pdf1" accept=".pdf" class="hidden">
+                                    <div class="pdf-preview" id="preview1">
+                                        <p class="text-gray-500">PDFをドラッグ＆ドロップ<br>または クリックして選択</p>
+                                    </div>
+                                </div>
+                                <!-- プレビューエリア -->
+                                <div class="preview-container mt-4">
+                                    <div class="canvas-container bg-gray-50 rounded-lg p-4 overflow-auto" style="height: 60vh;">
+                                        <canvas id="pdf1Canvas" class="mx-auto"></canvas>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 右側: 2つ目のPDF -->
+                        <div>
+                            <h3 class="text-lg font-semibold mb-2">比較するPDF</h3>
+                            <div class="relative">
+                                <!-- アップロードエリア -->
+                                <div id="pdf2Area" class="upload-area border-2 border-dashed border-gray-300 rounded-lg p-8 text-center cursor-pointer hover:border-blue-500 transition-colors">
+                                    <input type="file" id="pdf2" accept=".pdf" class="hidden">
+                                    <div class="pdf-preview" id="preview2">
+                                        <p class="text-gray-500">PDFをドラッグ＆ドロップ<br>または クリックして選択</p>
+                                    </div>
+                                </div>
+                                <!-- プレビューエリア -->
+                                <div class="preview-container mt-4">
+                                    <div class="canvas-container bg-gray-50 rounded-lg p-4 overflow-auto" style="height: 60vh;">
+                                        <canvas id="pdf2Canvas" class="mx-auto"></canvas>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 結果表示モーダル -->
+    <div id="resultModal" class="fixed inset-0 bg-black bg-opacity-50 hidden z-50">
+        <div class="flex items-center justify-center min-h-screen px-4">
+            <div class="bg-white rounded-lg shadow-xl max-w-7xl w-full">
+                <div class="p-6">
+                    <div class="flex justify-between items-center mb-6">
+                        <h2 class="text-2xl font-semibold">差分分析結果</h2>
+                        <button id="newCompare" class="bg-blue-500 text-white px-6 py-2 rounded-lg font-semibold hover:bg-blue-600 transition-colors">
+                            新しい比較を開始
+                        </button>
+                    </div>
+
+                    <!-- 差分の概要 -->
+                    <div id="diffStats" class="mb-8"></div>
+
+                    <!-- PDFプレビューと差分 -->
+                    <div class="grid md:grid-cols-2 gap-6">
+                        <!-- 元のPDF -->
+                        <div>
+                            <h3 class="text-lg font-semibold mb-2">元のPDF</h3>
+                            <div class="bg-gray-50 rounded-lg p-4 overflow-auto" style="height: 60vh;">
+                                <canvas id="pdf1ResultCanvas" class="mx-auto"></canvas>
+                            </div>
+                        </div>
+                        <!-- 比較対PDF -->
+                        <div>
+                            <h3 class="text-lg font-semibold mb-2">比較対PDF</h3>
+                            <div class="bg-gray-50 rounded-lg p-4 overflow-auto" style="height: 60vh;">
+                                <canvas id="pdf2ResultCanvas" class="mx-auto"></canvas>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- ページナビゲーション -->
+                    <div class="mt-4 flex justify-center items-center space-x-4">
+                        <button id="prevPage" class="bg-gray-200 px-4 py-2 rounded-lg hover:bg-gray-300 transition-colors disabled:opacity-50">前のページ</button>
+                        <span id="pageInfo" class="text-sm">1 / 1</span>
+                        <button id="nextPage" class="bg-gray-200 px-4 py-2 rounded-lg hover:bg-gray-300 transition-colors disabled:opacity-50">次のページ</button>
+                    </div>
+
+                    <!-- 差分の詳細 -->
+                    <div id="diffContent" class="hidden"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+</body>
+</html>

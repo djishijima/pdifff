@@ -1,0 +1,117 @@
+/* カスタムスタイル */
+.upload-area {
+    min-height: 150px;
+    position: relative;
+    transition: all 0.3s ease;
+}
+
+.upload-area.drag-over {
+    background-color: rgba(59, 130, 246, 0.1);
+    border-color: #3b82f6 !important;
+}
+
+/* PDFプレビューのスタイル */
+.pdf-preview {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 100px;
+}
+
+.preview-container {
+    width: 100%;
+    margin-top: 1rem;
+}
+
+.canvas-container {
+    width: 100%;
+    background-color: #f9fafb;
+    border-radius: 0.5rem;
+    position: relative;
+}
+
+.canvas-container canvas {
+    display: block;
+    margin: 0 auto;
+    max-width: 100%;
+    height: auto;
+}
+
+/* 差分表示のスタイル */
+.added {
+    background-color: #dcfce7;
+    color: #166534;
+    padding: 0.25rem 0.5rem;
+    margin: 0.125rem 0;
+    border-radius: 0.25rem;
+    display: block;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    font-size: 0.875rem;
+    line-height: 1.25rem;
+}
+
+.removed {
+    background-color: #fee2e2;
+    color: #991b1b;
+    padding: 0.25rem 0.5rem;
+    margin: 0.125rem 0;
+    border-radius: 0.25rem;
+    display: block;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    font-size: 0.875rem;
+    line-height: 1.25rem;
+}
+
+.unchanged {
+    color: #374151;
+    padding: 0.25rem 0.5rem;
+    margin: 0.125rem 0;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    font-size: 0.875rem;
+    line-height: 1.25rem;
+}
+
+/* モーダルのスタイル */
+.modal-content {
+    max-height: calc(100vh - 2rem);
+    overflow-y: auto;
+}
+
+.modal-footer {
+    position: sticky;
+    bottom: 0;
+    background-color: white;
+    padding: 1rem 0;
+    border-top: 1px solid #e5e7eb;
+    margin-top: 1rem;
+}
+
+/* レスポンシブデザインの調整 */
+@media (max-width: 640px) {
+    .upload-area {
+        min-height: 120px;
+    }
+    
+    .canvas-container {
+        max-height: 50vh;
+    }
+    
+    .modal-content {
+        max-height: calc(100vh - 1rem);
+    }
+}
+
+/* ローディングアニメーション */
+@keyframes spin {
+    from {
+        transform: rotate(0deg);
+    }
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+.loading-spinner {
+    animation: spin 1s linear infinite;
+}
