@@ -1,5 +1,4 @@
-document.addEventListener('DOMContentLoaded', function() {
-    'use strict';
+document.addEventListener('DOMContentLoaded', () => {
     // DOM要素
     const startBtn = document.getElementById('startBtn');
     const compareModal = document.getElementById('compareModal');
@@ -10,8 +9,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const pdf2Input = document.getElementById('pdf2');
 
     // PDFファイル
-    let pdf1File = null;
-    let pdf2File = null;
+    const pdfFiles = { pdf1: null, pdf2: null };
 
     // モーダル制御
     function showModal(modal) {
@@ -24,15 +22,15 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // 現在のページ番号を保持
     let currentPage = 1;
-    let totalPages = { pdf1: 1, pdf2: 1 };
-    let pdfDocs = { pdf1: null, pdf2: null };
+    const totalPages = { pdf1: 1, pdf2: 1 };
+    const pdfDocs = { pdf1: null, pdf2: null };
 
     // PDFプレビューの表示
     async function renderPDF(file, canvas, pageNum = 1) {
         try {
             const arrayBuffer = await file.arrayBuffer();
             const pdfDoc = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
-            
+
             // PDFドキュメントを保存
             if (canvas.id === 'pdf1ResultCanvas') {
                 pdfDocs.pdf1 = pdfDoc;
@@ -72,8 +70,8 @@ document.addEventListener('DOMContentLoaded', function() {
     // ページ情報の更新
     function updatePageInfo() {
         const maxPages = Math.max(totalPages.pdf1, totalPages.pdf2);
-        document.getElementById('pageInfo').textContent = `${currentPage} / ${maxPages}`;
-        
+        document.getElementById('pageInfo').textContent = `${currentPage}/${maxPages}`;
+
         // ページ移動ボタンの有効/無効を設定
         document.getElementById('prevPage').disabled = currentPage <= 1;
         document.getElementById('nextPage').disabled = currentPage >= maxPages;
@@ -83,7 +81,7 @@ document.addEventListener('DOMContentLoaded', function() {
     async function handleFileUpload(input) {
         const file = input.files[0];
         if (!file) return;
-        
+
         if (file.type !== 'application/pdf') {
             alert('PDFファイルを選択してください。');
             return;
@@ -92,9 +90,9 @@ document.addEventListener('DOMContentLoaded', function() {
         try {
             // ファイル情報を更新
             if (input.id === 'pdf1') {
-                pdf1File = file;
+                pdfFiles.pdf1 = file;
             } else {
-                pdf2File = file;
+                pdfFiles.pdf2 = file;
             }
 
             // アップロードエリアを最小化
@@ -103,16 +101,16 @@ document.addEventListener('DOMContentLoaded', function() {
             uploadArea.style.padding = '0.5rem';
             const previewText = uploadArea.querySelector('p');
             previewText.style.margin = '0';
-            previewText.textContent = file.name;
+            previewText.textContent = `${file.name}`;
 
             // プレビューを表示
-            const canvas = document.getElementById(input.id + 'Canvas');
+            const canvas = document.getElementById(`${input.id}Canvas`);
             if (canvas) {
                 await renderPDF(file, canvas);
             }
 
             // 両方のPDFがアップロードされていれば比較ボタンを有効化
-            compareBtn.disabled = !(pdf1File && pdf2File);
+            compareBtn.disabled = !(pdfFiles.pdf1 && pdfFiles.pdf2);
         } catch (error) {
             console.error('Error handling file upload:', error);
             alert('ファイルの読み込みに失敗しました。');
@@ -129,20 +127,21 @@ document.addEventListener('DOMContentLoaded', function() {
         if (currentPage > 1) {
             currentPage--;
             await Promise.all([
-                renderPDF(pdf1File, document.getElementById('pdf1ResultCanvas'), currentPage),
-                renderPDF(pdf2File, document.getElementById('pdf2ResultCanvas'), currentPage)
+                renderPDF(pdfFiles.pdf1, document.getElementById('pdf1ResultCanvas'), currentPage),
+                renderPDF(pdfFiles.pdf2, document.getElementById('pdf2ResultCanvas'), currentPage)
             ]);
             updatePageInfo();
         }
     });
 
+    // ページナビゲーションの設定
     document.getElementById('nextPage').addEventListener('click', async () => {
         const maxPages = Math.max(totalPages.pdf1, totalPages.pdf2);
         if (currentPage < maxPages) {
             currentPage++;
             await Promise.all([
-                renderPDF(pdf1File, document.getElementById('pdf1ResultCanvas'), currentPage),
-                renderPDF(pdf2File, document.getElementById('pdf2ResultCanvas'), currentPage)
+                renderPDF(pdfFiles.pdf1, document.getElementById('pdf1ResultCanvas'), currentPage),
+                renderPDF(pdfFiles.pdf2, document.getElementById('pdf2ResultCanvas'), currentPage)
             ]);
             updatePageInfo();
         }
@@ -180,20 +179,20 @@ document.addEventListener('DOMContentLoaded', function() {
         try {
             // 変数を初期化
             currentPage = 1;
-            
+
             // PDFを結果モーダルに表示
             await Promise.all([
-                renderPDF(pdf1File, document.getElementById('pdf1ResultCanvas'), currentPage),
-                renderPDF(pdf2File, document.getElementById('pdf2ResultCanvas'), currentPage)
+                renderPDF(pdfFiles.pdf1, document.getElementById('pdf1ResultCanvas'), currentPage),
+                renderPDF(pdfFiles.pdf2, document.getElementById('pdf2ResultCanvas'), currentPage)
             ]);
-            
+
             // ページ情報を更新
             updatePageInfo();
 
             // 差分の詳細を表示
             const diffContent = document.getElementById('diffContent');
             diffContent.innerHTML = '';
-            result.differences.forEach(diff => {
+            for (const diff of result.differences) {
                 const diffElement = document.createElement('div');
                 diffElement.className = `p-2 mb-2 rounded ${diff.type === 'addition' ? 'bg-green-100' : diff.type === 'deletion' ? 'bg-red-100' : 'bg-yellow-100'}`;
                 diffElement.innerHTML = `
@@ -205,14 +204,14 @@ document.addEventListener('DOMContentLoaded', function() {
                     highlightDifference(diff);
                 });
                 diffContent.appendChild(diffElement);
-            });
+            }
 
             // 全ての差分をハイライト表示
-            result.differences.forEach(diff => {
+            for (const diff of result.differences) {
                 if (diff.position && diff.position.page === currentPage) {
                     highlightDifference(diff);
                 }
-            });
+            }
 
         } catch (error) {
             console.error('Error showing comparison results:', error);
@@ -223,24 +222,24 @@ document.addEventListener('DOMContentLoaded', function() {
     // 差分のハイライト表示
     function highlightDifference(diff) {
         // 両方のキャンバスをクリア
-        ['pdf1ResultCanvas', 'pdf2ResultCanvas'].forEach(canvasId => {
+        for (const canvasId of ['pdf1ResultCanvas', 'pdf2ResultCanvas']) {
             const canvas = document.getElementById(canvasId);
             const ctx = canvas.getContext('2d');
             ctx.clearRect(0, 0, canvas.width, canvas.height);
-        });
+        }
 
         // PDFを再描画
         Promise.all([
-            renderPDF(pdf1File, document.getElementById('pdf1ResultCanvas')),
-            renderPDF(pdf2File, document.getElementById('pdf2ResultCanvas'))
+            renderPDF(pdfFiles.pdf1, document.getElementById('pdf1ResultCanvas')),
+            renderPDF(pdfFiles.pdf2, document.getElementById('pdf2ResultCanvas'))
         ]).then(() => {
             // 差分をハイライト
             const canvas = document.getElementById(diff.position.page === 1 ? 'pdf1ResultCanvas' : 'pdf2ResultCanvas');
             const ctx = canvas.getContext('2d');
             const scale = canvas.width / canvas.offsetWidth;
-            
+
             ctx.save();
-            
+
             // 差分の種類に応じて色を設定
             if (diff.type === 'addition') {
                 ctx.fillStyle = 'rgba(0, 255, 0, 0.3)';
@@ -271,8 +270,8 @@ document.addEventListener('DOMContentLoaded', function() {
             ctx.fillStyle = 'white';
             ctx.strokeStyle = 'black';
             ctx.lineWidth = 3;
-            const label = diff.type === 'addition' ? '追加' : 
-                         diff.type === 'deletion' ? '削除' : '変更';
+            const label = diff.type === 'addition' ? '追加' :
+                diff.type === 'deletion' ? '削除' : '変更';
             ctx.strokeText(label, x, y - 5);
             ctx.fillText(label, x, y - 5);
 
@@ -283,8 +282,8 @@ document.addEventListener('DOMContentLoaded', function() {
     // 比較開始
     compareBtn.addEventListener('click', async () => {
         const formData = new FormData();
-        formData.append('pdf1', pdf1File);
-        formData.append('pdf2', pdf2File);
+        formData.append('pdf1', pdfFiles.pdf1);
+        formData.append('pdf2', pdfFiles.pdf2);
 
         try {
             compareBtn.disabled = true;
@@ -314,7 +313,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
         } catch (error) {
             console.error('Error:', error);
-            alert('エラーが発生しました: ' + error.message);
+            alert(`エラーが発生しました: ${error.message}`);
         } finally {
             compareBtn.disabled = false;
             compareBtn.textContent = '比較開始';
@@ -327,18 +326,18 @@ document.addEventListener('DOMContentLoaded', function() {
         // 全ての入力をリセット
         pdf1Input.value = '';
         pdf2Input.value = '';
-        pdf1File = null;
-        pdf2File = null;
+        pdfFiles.pdf1 = null;
+        pdfFiles.pdf2 = null;
 
         // アップロードエリアを再表示
-        document.querySelectorAll('.upload-area').forEach(area => {
+        for (const area of document.querySelectorAll('.upload-area')) {
             area.classList.remove('hidden');
-        });
+        }
 
         // プレビューを非表示
-        document.querySelectorAll('.preview-container').forEach(container => {
+        for (const container of document.querySelectorAll('.preview-container')) {
             container.classList.add('hidden');
-        });
+        }
 
         // 比較ボタンを無効化
         compareBtn.disabled = true;
@@ -376,17 +375,17 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         }
 
-        ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(event => {
+        for (const event of ['dragenter', 'dragover', 'dragleave', 'drop']) {
             area.addEventListener(event, preventDefaults);
-        });
+        }
 
-        ['dragenter', 'dragover'].forEach(event => {
+        for (const event of ['dragenter', 'dragover']) {
             area.addEventListener(event, highlight);
-        });
+        }
 
-        ['dragleave', 'drop'].forEach(event => {
+        for (const event of ['dragleave', 'drop']) {
             area.addEventListener(event, unhighlight);
-        });
+        }
 
         area.addEventListener('drop', handleDrop);
         area.addEventListener('click', () => input.click());
